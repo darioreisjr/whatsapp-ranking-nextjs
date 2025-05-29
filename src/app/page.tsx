@@ -255,9 +255,9 @@ export default function WhatsAppRanking() {
           </h3>
           <ol className="list-decimal list-inside space-y-2 text-blue-700">
             <li>Abra o chat no WhatsApp</li>
-            <li>Toque nos três pontos (⋮) no canto superior direito</li>
-            <li>Selecione "Mais" → "Exportar conversa"</li>
-            <li>Escolha "Sem mídia"</li>
+            <li>Toque nos três pontos no canto superior direito</li>
+            <li>Selecione {'"'}Mais{'"'} e depois {'"'}Exportar conversa{'"'}</li>
+            <li>Escolha {'"'}Sem mídia{'"'}</li>
             <li>Salve o arquivo e faça upload aqui</li>
           </ol>
         </div>
