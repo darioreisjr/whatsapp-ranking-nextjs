@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
-import { Upload, Users, MessageCircle, Trophy, FileText, BarChart3, Calendar, AlertCircle } from 'lucide-react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
+import { Upload, Users, MessageCircle, Trophy, FileText, BarChart3, Calendar, AlertCircle, ChevronDown } from 'lucide-react';
 
 interface MessageCount {
   name: string;
@@ -32,6 +32,56 @@ export default function WhatsAppRanking() {
     startDate: '',
     endDate: ''
   });
+  const [visibleItems, setVisibleItems] = useState(10);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const loadMoreRef = useRef<HTMLDivElement>(null);
+
+  // Função para carregar mais itens
+  const loadMoreItems = useCallback(() => {
+    if (!rankingData || isLoadingMore) return;
+    
+    const remainingItems = rankingData.ranking.length - visibleItems;
+    if (remainingItems <= 0) return;
+
+    setIsLoadingMore(true);
+    
+    // Simular delay de carregamento para efeito visual
+    setTimeout(() => {
+      setVisibleItems(prev => prev + 10);
+      setIsLoadingMore(false);
+    }, 500);
+  }, [rankingData, visibleItems, isLoadingMore]);
+
+  // Intersection Observer para detectar quando chegar no final
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const target = entries[0];
+        if (target.isIntersecting && !isLoadingMore) {
+          loadMoreItems();
+        }
+      },
+      {
+        threshold: 0.1,
+        rootMargin: '50px'
+      }
+    );
+
+    if (loadMoreRef.current) {
+      observer.observe(loadMoreRef.current);
+    }
+
+    return () => {
+      if (loadMoreRef.current) {
+        observer.unobserve(loadMoreRef.current);
+      }
+    };
+  }, [loadMoreItems, isLoadingMore]);
+
+  // Reset visible items quando os dados mudarem
+  useEffect(() => {
+    setVisibleItems(10);
+  }, [rankingData]);
 
   // Função para converter data do WhatsApp (dd/mm/yyyy) para Date
   const parseWhatsAppDate = (dateStr: string): Date | null => {
@@ -359,13 +409,13 @@ export default function WhatsAppRanking() {
             {/* Ranking List */}
             <div className="p-6">
               <div className="space-y-3">
-                {rankingData.ranking.map((person, index) => {
+                {rankingData.ranking.slice(0, visibleItems).map((person, index) => {
                   const percentage = (person.count / rankingData.filteredMessages) * 100;
                   const position = index + 1;
                   
                   return (
                     <div 
-                      key={person.name}
+                      key={`${person.name}-${index}`}
                       className={`flex items-center gap-4 p-4 rounded-lg transition-all duration-200 hover:shadow-md ${
                         position <= 3 ? 'bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-200' : 'bg-gray-50 hover:bg-gray-100'
                       }`}
@@ -404,6 +454,37 @@ export default function WhatsAppRanking() {
                   );
                 })}
               </div>
+
+              {/* Loading More Indicator */}
+              {rankingData.ranking.length > visibleItems && (
+                <div ref={loadMoreRef} className="mt-6">
+                  {isLoadingMore ? (
+                    <div className="flex items-center justify-center py-4">
+                      <BarChart3 className="w-6 h-6 text-blue-500 animate-pulse mr-2" />
+                      <span className="text-gray-600">Carregando mais...</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-center py-4">
+                      <button
+                        onClick={loadMoreItems}
+                        className="flex items-center gap-2 px-4 py-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors"
+                      >
+                        <ChevronDown className="w-4 h-4" />
+                        <span>Carregar mais ({rankingData.ranking.length - visibleItems} restantes)</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Info about total items */}
+              {rankingData.ranking.length > 10 && (
+                <div className="mt-4 text-center">
+                  <p className="text-sm text-gray-500">
+                    Mostrando {Math.min(visibleItems, rankingData.ranking.length)} de {rankingData.ranking.length} participantes
+                  </p>
+                </div>
+              )}
 
               {rankingData.ranking.length === 0 && (
                 <div className="text-center py-8">
