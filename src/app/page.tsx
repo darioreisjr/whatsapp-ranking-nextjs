@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useCallback } from 'react';
-import { Upload, Users, MessageCircle, Trophy, FileText, BarChart3 } from 'lucide-react';
+import { Upload, Users, MessageCircle, Trophy, FileText, BarChart3, Calendar, AlertCircle } from 'lucide-react';
 
 interface MessageCount {
   name: string;
@@ -11,6 +11,16 @@ interface MessageCount {
 interface RankingData {
   totalMessages: number;
   ranking: MessageCount[];
+  filteredMessages: number;
+  dateRange: {
+    start: string;
+    end: string;
+  };
+}
+
+interface DateFilter {
+  startDate: string;
+  endDate: string;
 }
 
 export default function WhatsAppRanking() {
@@ -18,19 +28,53 @@ export default function WhatsAppRanking() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [rankingData, setRankingData] = useState<RankingData | null>(null);
   const [error, setError] = useState<string>('');
+  const [dateFilter, setDateFilter] = useState<DateFilter>({
+    startDate: '',
+    endDate: ''
+  });
 
-  const processWhatsAppFile = useCallback(async (fileContent: string): Promise<RankingData> => {
+  // Função para converter data do WhatsApp (dd/mm/yyyy) para Date
+  const parseWhatsAppDate = (dateStr: string): Date | null => {
+    const match = dateStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+    if (!match) return null;
+    
+    const [, day, month, year] = match;
+    return new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+  };
+
+  // Função para validar se a data está no range
+  const isDateInRange = (messageDate: Date, startDate: string, endDate: string): boolean => {
+    if (!startDate && !endDate) return true;
+    
+    const start = startDate ? new Date(startDate) : null;
+    const end = endDate ? new Date(endDate) : null;
+    
+    if (start && messageDate < start) return false;
+    if (end && messageDate > end) return false;
+    
+    return true;
+  };
+
+  const processWhatsAppFile = useCallback(async (fileContent: string, filter: DateFilter): Promise<RankingData> => {
     const lines = fileContent.split('\n');
     const messageCounts: Record<string, number> = {};
     let validMessages = 0;
+    let filteredMessages = 0;
 
     lines.forEach(line => {
       // Regex para capturar mensagens com formato: data - Nome: mensagem
-      const match = line.match(/^\d{1,2}\/\d{1,2}\/\d{4} \d{2}:\d{2} - (.*?): /);
-      if (match && match[1]) {
-        const name = match[1].trim();
+      const match = line.match(/^(\d{1,2}\/\d{1,2}\/\d{4}) \d{2}:\d{2} - (.*?): /);
+      if (match && match[1] && match[2]) {
+        const dateStr = match[1];
+        const name = match[2].trim();
         validMessages++;
-        messageCounts[name] = (messageCounts[name] || 0) + 1;
+
+        // Verificar se a data está no filtro
+        const messageDate = parseWhatsAppDate(dateStr);
+        if (messageDate && isDateInRange(messageDate, filter.startDate, filter.endDate)) {
+          filteredMessages++;
+          messageCounts[name] = (messageCounts[name] || 0) + 1;
+        }
       }
     });
 
@@ -40,11 +84,16 @@ export default function WhatsAppRanking() {
 
     return {
       totalMessages: validMessages,
-      ranking
+      filteredMessages,
+      ranking,
+      dateRange: {
+        start: filter.startDate || 'Início',
+        end: filter.endDate || 'Fim'
+      }
     };
   }, []);
 
-  const processFile = useCallback(async (uploadedFile: File) => {
+  const processFile = useCallback(async (uploadedFile: File, filter: DateFilter = dateFilter) => {
     if (!uploadedFile.name.endsWith('.txt')) {
       setError('Por favor, selecione um arquivo .txt');
       return;
@@ -56,7 +105,7 @@ export default function WhatsAppRanking() {
 
     try {
       const fileContent = await uploadedFile.text();
-      const result = await processWhatsAppFile(fileContent);
+      const result = await processWhatsAppFile(fileContent, filter);
       setRankingData(result);
     } catch (err) {
       setError('Erro ao processar o arquivo. Verifique se é um arquivo de chat do WhatsApp válido.');
@@ -64,7 +113,7 @@ export default function WhatsAppRanking() {
     } finally {
       setIsProcessing(false);
     }
-  }, [processWhatsAppFile]);
+  }, [processWhatsAppFile, dateFilter]);
 
   const handleFileUpload = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
     const uploadedFile = event.target.files?.[0];
@@ -85,6 +134,40 @@ export default function WhatsAppRanking() {
     }
   }, [processFile]);
 
+  const handleDateChange = useCallback((field: 'startDate' | 'endDate', value: string) => {
+    const today = new Date().toISOString().split('T')[0];
+    
+    // Validar se a data não é futura
+    if (value > today) {
+      setError('A data não pode ser maior que hoje');
+      return;
+    }
+
+    const newFilter = { ...dateFilter, [field]: value };
+    
+    // Validar se data início não é maior que data fim
+    if (newFilter.startDate && newFilter.endDate && newFilter.startDate > newFilter.endDate) {
+      setError('A data de início não pode ser maior que a data de fim');
+      return;
+    }
+
+    setError('');
+    setDateFilter(newFilter);
+  }, [dateFilter]);
+
+  const handleApplyFilter = useCallback(async () => {
+    if (!file) return;
+    await processFile(file, dateFilter);
+  }, [file, processFile, dateFilter]);
+
+  const handleClearFilter = useCallback(async () => {
+    const clearedFilter = { startDate: '', endDate: '' };
+    setDateFilter(clearedFilter);
+    if (file) {
+      await processFile(file, clearedFilter);
+    }
+  }, [file, processFile]);
+
   const getTrophyColor = (position: number): string => {
     switch (position) {
       case 1: return 'text-yellow-500';
@@ -100,6 +183,14 @@ export default function WhatsAppRanking() {
     }
     return <span className="w-5 h-5 flex items-center justify-center text-gray-600 font-bold text-sm">{position}</span>;
   };
+
+  const formatDate = (dateStr: string): string => {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('pt-BR');
+  };
+
+  const today = new Date().toISOString().split('T')[0];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 p-4">
@@ -162,11 +253,78 @@ export default function WhatsAppRanking() {
           )}
 
           {error && (
-            <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2">
+              <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
               <p className="text-red-600 font-medium">{error}</p>
             </div>
           )}
         </div>
+
+        {/* Date Filter */}
+        {file && (
+          <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
+            <div className="flex items-center gap-2 mb-4">
+              <Calendar className="w-5 h-5 text-blue-600" />
+              <h3 className="text-lg font-semibold text-gray-800">Filtrar por Data</h3>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+              <div>
+                <label htmlFor="start-date" className="block text-sm font-medium text-gray-700 mb-1">
+                  Data de Início
+                </label>
+                <input
+                  type="date"
+                  id="start-date"
+                  value={dateFilter.startDate}
+                  max={today}
+                  onChange={(e) => handleDateChange('startDate', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                />
+              </div>
+              
+              <div>
+                <label htmlFor="end-date" className="block text-sm font-medium text-gray-700 mb-1">
+                  Data de Fim
+                </label>
+                <input
+                  type="date"
+                  id="end-date"
+                  value={dateFilter.endDate}
+                  max={today}
+                  onChange={(e) => handleDateChange('endDate', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                />
+              </div>
+              
+              <button
+                onClick={handleApplyFilter}
+                disabled={isProcessing}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                Aplicar Filtro
+              </button>
+              
+              <button
+                onClick={handleClearFilter}
+                disabled={isProcessing}
+                className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 focus:ring-2 focus:ring-gray-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                Limpar Filtro
+              </button>
+            </div>
+
+            {(dateFilter.startDate || dateFilter.endDate) && (
+              <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-blue-800 text-sm">
+                  <strong>Filtro ativo:</strong> {' '}
+                  {dateFilter.startDate ? formatDate(dateFilter.startDate) : 'Início'} até {' '}
+                  {dateFilter.endDate ? formatDate(dateFilter.endDate) : 'Fim'}
+                </p>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Results */}
         {rankingData && (
@@ -178,12 +336,22 @@ export default function WhatsAppRanking() {
                   <Users className="w-8 h-8" />
                   <div>
                     <h2 className="text-2xl font-bold">Ranking de Mensagens</h2>
-                    <p className="text-green-100">Análise completa do chat</p>
+                    <p className="text-green-100">
+                      {rankingData.filteredMessages !== rankingData.totalMessages 
+                        ? `${rankingData.filteredMessages} mensagens filtradas de ${rankingData.totalMessages} totais`
+                        : 'Análise completa do chat'
+                      }
+                    </p>
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className="text-3xl font-bold">{rankingData.totalMessages}</div>
-                  <div className="text-green-100">Mensagens totais</div>
+                  <div className="text-3xl font-bold">{rankingData.filteredMessages}</div>
+                  <div className="text-green-100">Mensagens no período</div>
+                  {rankingData.filteredMessages !== rankingData.totalMessages && (
+                    <div className="text-sm text-green-200 mt-1">
+                      Total: {rankingData.totalMessages}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -192,7 +360,7 @@ export default function WhatsAppRanking() {
             <div className="p-6">
               <div className="space-y-3">
                 {rankingData.ranking.map((person, index) => {
-                  const percentage = (person.count / rankingData.totalMessages) * 100;
+                  const percentage = (person.count / rankingData.filteredMessages) * 100;
                   const position = index + 1;
                   
                   return (
@@ -240,7 +408,12 @@ export default function WhatsAppRanking() {
               {rankingData.ranking.length === 0 && (
                 <div className="text-center py-8">
                   <MessageCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-600">Nenhuma mensagem válida encontrada no arquivo.</p>
+                  <p className="text-gray-600">
+                    {(dateFilter.startDate || dateFilter.endDate) 
+                      ? 'Nenhuma mensagem encontrada no período selecionado.'
+                      : 'Nenhuma mensagem válida encontrada no arquivo.'
+                    }
+                  </p>
                 </div>
               )}
             </div>
