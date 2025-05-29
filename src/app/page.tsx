@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { Upload, Users, MessageCircle, Trophy, FileText, BarChart3, Calendar, AlertCircle, ChevronDown } from 'lucide-react';
+import { Upload, Users, MessageCircle, Trophy, FileText, BarChart3, Calendar, AlertCircle, ChevronDown, Save, Trash2, RefreshCw } from 'lucide-react';
 
 interface MessageCount {
   name: string;
@@ -23,6 +23,16 @@ interface DateFilter {
   endDate: string;
 }
 
+interface CachedData {
+  fileName: string;
+  fileSize: number;
+  fileContent: string;
+  rankingData: RankingData;
+  dateFilter: DateFilter;
+  visibleItems: number;
+  timestamp: number;
+}
+
 export default function WhatsAppRanking() {
   const [file, setFile] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -34,7 +44,107 @@ export default function WhatsAppRanking() {
   });
   const [visibleItems, setVisibleItems] = useState(10);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [hasCache, setHasCache] = useState(false);
+  const [isLoadingCache, setIsLoadingCache] = useState(false);
   const loadMoreRef = useRef<HTMLDivElement>(null);
+
+  const CACHE_KEY = 'whatsapp-ranking-cache';
+  const CACHE_EXPIRY = 7 * 24 * 60 * 60 * 1000; // 7 dias em millisegundos
+
+  // Funções de Cache
+  const saveToCache = useCallback((fileData: File, content: string, ranking: RankingData, filter: DateFilter) => {
+    try {
+      const cacheData: CachedData = {
+        fileName: fileData.name,
+        fileSize: fileData.size,
+        fileContent: content,
+        rankingData: ranking,
+        dateFilter: filter,
+        visibleItems: visibleItems,
+        timestamp: Date.now()
+      };
+      localStorage.setItem(CACHE_KEY, JSON.stringify(cacheData));
+      setHasCache(true);
+    } catch (error) {
+      console.error('Erro ao salvar cache:', error);
+    }
+  }, [visibleItems]);
+
+  const loadFromCache = useCallback((): CachedData | null => {
+    try {
+      const cached = localStorage.getItem(CACHE_KEY);
+      if (!cached) return null;
+
+      const data: CachedData = JSON.parse(cached);
+      
+      // Verificar se o cache não expirou
+      if (Date.now() - data.timestamp > CACHE_EXPIRY) {
+        localStorage.removeItem(CACHE_KEY);
+        return null;
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Erro ao carregar cache:', error);
+      localStorage.removeItem(CACHE_KEY);
+      return null;
+    }
+  }, []);
+
+  const clearCache = useCallback(() => {
+    try {
+      localStorage.removeItem(CACHE_KEY);
+      setHasCache(false);
+      
+      // Reset do estado
+      setFile(null);
+      setRankingData(null);
+      setDateFilter({ startDate: '', endDate: '' });
+      setVisibleItems(10);
+      setError('');
+    } catch (error) {
+      console.error('Erro ao limpar cache:', error);
+    }
+  }, []);
+
+  const restoreFromCache = useCallback(async () => {
+    setIsLoadingCache(true);
+    try {
+      const cached = loadFromCache();
+      if (!cached) {
+        setHasCache(false);
+        return;
+      }
+
+      // Simular um arquivo a partir do cache
+      const blob = new Blob([cached.fileContent], { type: 'text/plain' });
+      const cachedFile = new File([blob], cached.fileName, { type: 'text/plain' });
+
+      // Restaurar estado
+      setFile(cachedFile);
+      setRankingData(cached.rankingData);
+      setDateFilter(cached.dateFilter);
+      setVisibleItems(cached.visibleItems);
+      setHasCache(true);
+      setError('');
+
+      // Mostrar feedback
+      setTimeout(() => {
+        setIsLoadingCache(false);
+      }, 800);
+    } catch (error) {
+      console.error('Erro ao restaurar cache:', error);
+      setError('Erro ao carregar dados salvos');
+      setIsLoadingCache(false);
+      clearCache();
+    }
+  }, [loadFromCache, clearCache]);
+
+  // Verificar cache ao carregar a página
+  useEffect(() => {
+    const cached = loadFromCache();
+    setHasCache(!!cached);
+  }, [loadFromCache]);
 
   // Função para carregar mais itens
   const loadMoreItems = useCallback(() => {
@@ -157,13 +267,17 @@ export default function WhatsAppRanking() {
       const fileContent = await uploadedFile.text();
       const result = await processWhatsAppFile(fileContent, filter);
       setRankingData(result);
+      
+      // Salvar no cache automaticamente
+      saveToCache(uploadedFile, fileContent, result, filter);
+      
     } catch (err) {
       setError('Erro ao processar o arquivo. Verifique se é um arquivo de chat do WhatsApp válido.');
       console.error(err);
     } finally {
       setIsProcessing(false);
     }
-  }, [processWhatsAppFile, dateFilter]);
+  }, [processWhatsAppFile, dateFilter, saveToCache]);
 
   const handleFileUpload = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
     const uploadedFile = event.target.files?.[0];
@@ -207,8 +321,26 @@ export default function WhatsAppRanking() {
 
   const handleApplyFilter = useCallback(async () => {
     if (!file) return;
-    await processFile(file, dateFilter);
-  }, [file, processFile, dateFilter]);
+    
+    const cached = loadFromCache();
+    if (cached) {
+      // Se tem cache, usar o conteúdo do cache
+      try {
+        const result = await processWhatsAppFile(cached.fileContent, dateFilter);
+        setRankingData(result);
+        
+        // Atualizar cache com novo filtro
+        const blob = new Blob([cached.fileContent], { type: 'text/plain' });
+        const cachedFile = new File([blob], cached.fileName, { type: 'text/plain' });
+        saveToCache(cachedFile, cached.fileContent, result, dateFilter);
+      } catch (error) {
+        console.error('Erro ao aplicar filtro:', error);
+        await processFile(file, dateFilter);
+      }
+    } else {
+      await processFile(file, dateFilter);
+    }
+  }, [file, processFile, dateFilter, loadFromCache, processWhatsAppFile, saveToCache]);
 
   const handleClearFilter = useCallback(async () => {
     const clearedFilter = { startDate: '', endDate: '' };
@@ -240,6 +372,27 @@ export default function WhatsAppRanking() {
     return date.toLocaleDateString('pt-BR');
   };
 
+  const formatCacheTime = (timestamp: number): string => {
+    const now = Date.now();
+    const diff = now - timestamp;
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const days = Math.floor(hours / 24);
+    
+    if (days > 0) {
+      return `${days} dia${days > 1 ? 's' : ''} atrás`;
+    } else if (hours > 0) {
+      return `${hours} hora${hours > 1 ? 's' : ''} atrás`;
+    } else {
+      return 'Há poucos minutos';
+    }
+  };
+
+  const getCacheInfo = (): string => {
+    const cached = loadFromCache();
+    if (!cached) return '';
+    return formatCacheTime(cached.timestamp);
+  };
+
   const today = new Date().toISOString().split('T')[0];
 
   return (
@@ -251,6 +404,70 @@ export default function WhatsAppRanking() {
             <MessageCircle className="w-10 h-10 text-green-600" />
             <h1 className="text-4xl font-bold text-gray-800">WhatsApp Ranking</h1>
           </div>
+
+        {/* Cache Section */}
+        {hasCache && !rankingData && (
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-6 mb-8">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Save className="w-6 h-6 text-blue-600" />
+                <div>
+                  <h3 className="text-lg font-semibold text-blue-800">Dados Salvos Encontrados</h3>
+                  <p className="text-blue-600 text-sm">
+                    Encontramos sua última análise salva {getCacheInfo()}. Deseja carregá-la?
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={restoreFromCache}
+                  disabled={isLoadingCache}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {isLoadingCache ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                      Carregando...
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="w-4 h-4" />
+                      Carregar Dados
+                    </>
+                  )}
+                </button>
+                <button
+                  onClick={clearCache}
+                  disabled={isLoadingCache}
+                  className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 focus:ring-2 focus:ring-gray-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Limpar Cache
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Cache Info - when data is loaded from cache */}
+        {rankingData && hasCache && (
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Save className="w-4 h-4 text-green-600" />
+                <span className="text-green-800 text-sm font-medium">
+                  Dados carregados do cache local
+                </span>
+              </div>
+              <button
+                onClick={clearCache}
+                className="text-green-600 hover:text-green-800 text-sm underline"
+              >
+                Limpar e começar novo
+              </button>
+            </div>
+          </div>
+        )}
           <p className="text-gray-600 text-lg">
             Faça upload do seu arquivo de chat do WhatsApp para ver quem mais envia mensagens
           </p>
@@ -288,6 +505,9 @@ export default function WhatsAppRanking() {
                   </p>
                   <p className="text-gray-500">
                     Arquivo de chat do WhatsApp (.txt)
+                  </p>
+                  <p className="text-xs text-gray-400 mt-1">
+                    💾 Seus dados serão salvos automaticamente para próxima visita
                   </p>
                 </div>
               </div>
