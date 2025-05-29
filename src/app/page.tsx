@@ -44,10 +44,7 @@ export default function WhatsAppRanking() {
     };
   }, []);
 
-  const handleFileUpload = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const uploadedFile = event.target.files?.[0];
-    if (!uploadedFile) return;
-
+  const processFile = useCallback(async (uploadedFile: File) => {
     if (!uploadedFile.name.endsWith('.txt')) {
       setError('Por favor, selecione um arquivo .txt');
       return;
@@ -69,20 +66,24 @@ export default function WhatsAppRanking() {
     }
   }, [processWhatsAppFile]);
 
+  const handleFileUpload = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const uploadedFile = event.target.files?.[0];
+    if (!uploadedFile) return;
+
+    await processFile(uploadedFile);
+  }, [processFile]);
+
   const handleDragOver = useCallback((event: React.DragEvent) => {
     event.preventDefault();
   }, []);
 
-  const handleDrop = useCallback((event: React.DragEvent) => {
+  const handleDrop = useCallback(async (event: React.DragEvent) => {
     event.preventDefault();
     const droppedFile = event.dataTransfer.files[0];
     if (droppedFile && droppedFile.name.endsWith('.txt')) {
-      const fakeEvent = {
-        target: { files: [droppedFile] }
-      } as React.ChangeEvent<HTMLInputElement>;
-      handleFileUpload(fakeEvent);
+      await processFile(droppedFile);
     }
-  }, [handleFileUpload]);
+  }, [processFile]);
 
   const getTrophyColor = (position: number): string => {
     switch (position) {
