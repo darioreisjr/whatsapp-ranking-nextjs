@@ -7,8 +7,13 @@ Uma aplicação web moderna e segura para analisar seus chats do WhatsApp e desc
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind-4-cyan?style=flat-square&logo=tailwindcss)
 ![React](https://img.shields.io/badge/React-19-blue?style=flat-square&logo=react)
 
-![image](https://github.com/user-attachments/assets/9be26d9f-1c0f-4714-81bd-9ec0a08fd850)
+## 🆕 Novidades da Versão 2.0
 
+### 🗜️ **Suporte Nativo a Arquivos ZIP**
+- **Upload direto de arquivos ZIP:** Não precisa mais descompactar o arquivo do WhatsApp
+- **Extração automática:** O sistema detecta e extrai automaticamente o arquivo TXT do ZIP
+- **Compatibilidade total:** Funciona com arquivos ZIP e TXT
+- **Mais praticidade:** Cole diretamente o arquivo baixado do WhatsApp
 
 ## 🚀 Funcionalidades
 
@@ -24,10 +29,17 @@ Uma aplicação web moderna e segura para analisar seus chats do WhatsApp e desc
 - Estatísticas visuais com gráficos e barras de progresso
 - Filtros avançados por período de datas
 
+### 📁 **Suporte a Múltiplos Formatos**
+- **Arquivos ZIP:** Upload direto do arquivo exportado do WhatsApp
+- **Arquivos TXT:** Compatibilidade com arquivos descompactados manualmente
+- **Detecção automática:** O sistema identifica e processa o formato correto
+- **Validação inteligente:** Verifica se o arquivo é um export válido do WhatsApp
+
 ### 💾 **Sistema de Cache Inteligente**
 - Salvamento automático das análises por 7 dias
 - Carregamento rápido de dados anteriores
 - Gerenciamento inteligente de memória
+- Funciona com arquivos ZIP e TXT
 
 ### 📤 **Exportação Profissional**
 - **PDF**: Relatórios visuais com design profissional
@@ -47,6 +59,7 @@ Uma aplicação web moderna e segura para analisar seus chats do WhatsApp e desc
 - **[TypeScript 5](https://www.typescriptlang.org/)** - Tipagem estática
 - **[Tailwind CSS 4](https://tailwindcss.com/)** - Framework de estilização
 - **[Lucide React](https://lucide.dev/)** - Biblioteca de ícones
+- **[JSZip](https://stuk.github.io/jszip/)** - Manipulação de arquivos ZIP
 
 ## 📦 Instalação e Configuração
 
@@ -88,12 +101,13 @@ Abra [http://localhost:3000](http://localhost:3000) no seu navegador.
 2. Toque nos três pontos (⋮) no canto superior direito
 3. Selecione **"Mais"** → **"Exportar conversa"**
 4. Escolha **"Sem mídia"**
-5. Salve o arquivo `.txt` no seu dispositivo
+5. Salve o arquivo no seu dispositivo
 
 ### 2. **Faça Upload do Arquivo**
 1. Acesse a página de Análise
-2. Clique em **"Escolher arquivo"** ou arraste o arquivo `.txt` para a área de upload
-3. Aguarde o processamento (geralmente instantâneo)
+2. **NOVO:** Arraste diretamente o arquivo ZIP baixado do WhatsApp, ou
+3. Clique em **"Escolher arquivo"** e selecione o ZIP ou TXT
+4. Aguarde o processamento (geralmente instantâneo)
 
 ### 3. **Visualize os Resultados**
 - Veja o ranking completo de participantes
@@ -106,6 +120,12 @@ Abra [http://localhost:3000](http://localhost:3000) no seu navegador.
 
 ## 🎯 Funcionalidades Avançadas
 
+### **Suporte a Arquivos ZIP** 🆕
+- Upload direto do arquivo exportado do WhatsApp
+- Extração automática do conteúdo TXT
+- Detecção inteligente de arquivos de chat
+- Tratamento de erros robusto
+
 ### **Filtros por Data**
 - Filtre mensagens por período específico
 - Defina data de início e/ou fim
@@ -115,35 +135,12 @@ Abra [http://localhost:3000](http://localhost:3000) no seu navegador.
 - Dados salvos automaticamente por 7 dias
 - Carregamento rápido de análises anteriores
 - Opção de limpar cache a qualquer momento
+- Funciona com ambos os formatos (ZIP e TXT)
 
 ### **Privacidade dos Dados**
 - Números de telefone são automaticamente mascarados
 - Exemplo: `+55119****1234` em vez do número completo
 - Nomes salvos na agenda permanecem visíveis
-
-## 📁 Estrutura do Projeto
-
-```
-src/
-├── app/                     # App Router do Next.js
-│   ├── layout.tsx          # Layout principal
-│   ├── page.tsx            # Página inicial
-│   ├── ranking/            # Página de análise
-│   └── globals.css         # Estilos globais
-├── components/             # Componentes React
-│   ├── LandingPage/        # Componentes da página inicial
-│   ├── WhatsAppRanking/    # Componentes de análise
-│   └── ui/                 # Componentes de interface
-├── hooks/                  # Hooks personalizados
-│   ├── useCache.ts         # Gerenciamento de cache
-│   ├── useExport.ts        # Exportação de dados
-│   └── useFileProcessor.ts # Processamento de arquivos
-├── types/                  # Definições TypeScript
-├── utils/                  # Utilitários
-│   ├── whatsappParser.ts   # Parser de arquivos WhatsApp
-│   ├── exportUtils.ts      # Geração de PDF/JSON
-│   └── dateUtils.ts        # Manipulação de datas
-```
 
 ## 🔧 Scripts Disponíveis
 
@@ -154,30 +151,24 @@ npm run start    # Servidor de produção
 npm run lint     # Verificação de código
 ```
 
-## 🌐 Deploy
+## 📁 Estrutura do Projeto
 
-### Vercel (Recomendado)
-```bash
-npm install -g vercel
-vercel
 ```
-
-### Netlify
-```bash
-npm run build
-# Upload da pasta .next para Netlify
-```
-
-### Docker (Opcional)
-```dockerfile
-FROM node:18-alpine
-WORKDIR /app
-COPY package*.json ./
-RUN npm install
-COPY . .
-RUN npm run build
-EXPOSE 3000
-CMD ["npm", "start"]
+src/
+├── app/                     # App Router do Next.js
+├── components/             # Componentes React
+│   ├── LandingPage/        # Componentes da página inicial
+│   ├── WhatsAppRanking/    # Componentes de análise
+│   └── ui/                 # Componentes de interface
+├── hooks/                  # Hooks personalizados
+│   ├── useCache.ts         # Gerenciamento de cache
+│   ├── useExport.ts        # Exportação de dados
+│   └── useFileProcessor.ts # Processamento de arquivos (ZIP/TXT)
+├── types/                  # Definições TypeScript
+├── utils/                  # Utilitários
+│   ├── whatsappParser.ts   # Parser de arquivos WhatsApp
+│   ├── exportUtils.ts      # Geração de PDF/JSON
+│   └── dateUtils.ts        # Manipulação de datas
 ```
 
 ## 🔒 Privacidade e Segurança
@@ -197,67 +188,10 @@ CMD ["npm", "start"]
 - Sem Google Analytics ou ferramentas similares
 - Totalmente anônimo
 
-## 🤝 Contribuindo
-
-1. **Fork** o projeto
-2. Crie uma **branch** para sua feature (`git checkout -b feature/AmazingFeature`)
-3. **Commit** suas mudanças (`git commit -m 'Add some AmazingFeature'`)
-4. **Push** para a branch (`git push origin feature/AmazingFeature`)
-5. Abra um **Pull Request**
-
-### **Diretrizes de Contribuição**
-- Use TypeScript para tipagem forte
-- Siga as convenções do ESLint configurado
-- Mantenha componentes pequenos e reutilizáveis
-- Adicione testes quando possível
-- Documente novas funcionalidades
-
-## 🐛 Reportar Problemas
-
-Encontrou um bug? [Abra uma issue](https://github.com/seu-usuario/whatsapp-ranking-nextjs/issues) com:
-- Descrição detalhada do problema
-- Passos para reproduzir
-- Screenshots (se aplicável)
-- Informações do navegador/sistema
-
-## 📊 Compatibilidade
-
-### **Navegadores Suportados**
-- Chrome 90+
-- Firefox 88+
-- Safari 14+
-- Edge 90+
-
-### **Dispositivos**
-- Desktop (Windows, macOS, Linux)
-- Mobile (iOS Safari, Chrome Android)
-- Tablets
-
-## 📄 Licença
-
-Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para mais detalhes.
-
-## 👨‍💻 Autor
-
-**Dário Reis**
-- GitHub: [@darioreisjr](https://github.com/darioreisjr)
-- LinkedIn: [Dário Reis Jr](https://linkedin.com/in/darioreisjr)
-
-## 🙏 Agradecimentos
-
-- [Next.js](https://nextjs.org/) pela framework incrível
-- [Tailwind CSS](https://tailwindcss.com/) pela estilização eficiente
-- [Lucide](https://lucide.dev/) pelos ícones belíssimos
-- Comunidade open source por inspiração e feedback
-
----
-
-<div align="center">
-  <p>⭐ Se este projeto te ajudou, considere dar uma estrela!</p>
-  <p>🔄 Compartilhe com amigos que também usam WhatsApp</p>
-</div>
-
 ## 🆘 FAQ (Perguntas Frequentes)
+
+### **P: Posso usar arquivos ZIP diretamente?**
+R: Sim! Esta é uma novidade da versão 2.0. Você pode fazer upload do arquivo ZIP baixado diretamente do WhatsApp, sem precisar descompactar.
 
 ### **P: Meus dados ficam seguros?**
 R: Sim! Todo processamento é feito localmente no seu navegador. Nenhum dado sai do seu dispositivo.
@@ -271,20 +205,11 @@ R: Não há limite fixo. A aplicação foi otimizada para processar arquivos gra
 ### **P: Os números de telefone ficam visíveis?**
 R: Não! Números são automaticamente mascarados para proteção da privacidade.
 
-### **P: Posso usar offline?**
-R: Após a primeira visita, muitas funcionalidades funcionam offline graças ao cache do navegador.
-
-### **P: Como limpar os dados salvos?**
-R: Use o botão "Limpar Cache" na interface ou limpe o localStorage do navegador.
-
-### **P: O arquivo funciona em qualquer idioma?**
-R: A aplicação foi desenvolvida para o formato brasileiro do WhatsApp, mas pode funcionar com outros formatos de data similares.
-
-### **P: Preciso de internet para usar?**
-R: Após carregar a página inicial, a aplicação funciona completamente offline.
+### **P: O que fazer se o arquivo ZIP não funcionar?**
+R: Verifique se é o arquivo original exportado do WhatsApp. Se persistir o problema, descompacte manualmente e use o arquivo TXT.
 
 ---
 
-*Feito com ❤️ usando Next.js, TypeScript e Tailwind CSS*
+*Feito com ❤️ usando Next.js, TypeScript, Tailwind CSS e JSZip*
 
-*Última atualização: maio 2025*
+*Última atualização: janeiro 2025*
