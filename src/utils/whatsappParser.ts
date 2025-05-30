@@ -20,6 +20,63 @@ export const isDateInRange = (messageDate: Date, startDate: string, endDate: str
   return true;
 };
 
+// Função para detectar se é um número de telefone
+const isPhoneNumber = (name: string): boolean => {
+  // Remove espaços e caracteres especiais comuns em números
+  const cleaned = name.replace(/[\s\-\(\)\+]/g, '');
+  
+  // Verifica se contém apenas números (pode ter + no início)
+  const isNumeric = /^[\+]?\d+$/.test(cleaned);
+  
+  // Verifica se tem pelo menos 8 dígitos (tamanho mínimo de um telefone)
+  const hasMinLength = cleaned.replace(/\+/, '').length >= 8;
+  
+  // Verifica se tem no máximo 15 dígitos (padrão internacional)
+  const hasMaxLength = cleaned.replace(/\+/, '').length <= 15;
+  
+  return isNumeric && hasMinLength && hasMaxLength;
+};
+
+// Função para mascarar número de telefone
+const maskPhoneNumber = (phoneNumber: string): string => {
+  // Remove espaços e caracteres especiais para trabalhar apenas com números
+  const cleaned = phoneNumber.replace(/[\s\-\(\)]/g, '');
+  
+  // Se tem + no início, preserva
+  const hasCountryCode = cleaned.startsWith('+');
+  const numbers = cleaned.replace(/\+/, '');
+  
+  if (numbers.length <= 4) {
+    // Se tem 4 ou menos dígitos, mostra todos (pode não ser telefone)
+    return phoneNumber;
+  }
+  
+  // Pega os últimos 4 dígitos
+  const lastFour = numbers.slice(-4);
+  
+  // Calcula quantos caracteres mascarar
+  const maskCount = numbers.length - 4;
+  const mask = '*'.repeat(maskCount);
+  
+  // Reconstrói o número mascarado
+  const maskedNumber = (hasCountryCode ? '+' : '') + mask + lastFour;
+  
+  return maskedNumber;
+};
+
+// Função para processar nome garantindo privacidade
+const processNameForPrivacy = (rawName: string): string => {
+  const name = rawName.trim();
+  
+  // Se é um número de telefone, mascara
+  if (isPhoneNumber(name)) {
+    return maskPhoneNumber(name);
+  }
+  
+  // Se é um nome salvo, mantém como está
+  return name;
+};
+
 export const processWhatsAppFile = async (fileContent: string, filter: DateFilter): Promise<RankingData> => {
   const lines = fileContent.split('\n');
   const messageCounts: Record<string, number> = {};
@@ -30,13 +87,17 @@ export const processWhatsAppFile = async (fileContent: string, filter: DateFilte
     const match = line.match(/^(\d{1,2}\/\d{1,2}\/\d{4}) \d{2}:\d{2} - (.*?): /);
     if (match && match[1] && match[2]) {
       const dateStr = match[1];
-      const name = match[2].trim();
+      const rawName = match[2].trim();
+      
+      // Processa o nome aplicando privacidade se necessário
+      const processedName = processNameForPrivacy(rawName);
+      
       validMessages++;
 
       const messageDate = parseWhatsAppDate(dateStr);
       if (messageDate && isDateInRange(messageDate, filter.startDate, filter.endDate)) {
         filteredMessages++;
-        messageCounts[name] = (messageCounts[name] || 0) + 1;
+        messageCounts[processedName] = (messageCounts[processedName] || 0) + 1;
       }
     }
   });
