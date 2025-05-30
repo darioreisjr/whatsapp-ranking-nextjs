@@ -1,7 +1,5 @@
-'use client';
+import { LandingPage } from '@/components/LandingPage/LandingPage';
 
-import { WhatsAppRanking } from '@/components/WhatsAppRanking';
-
-export default function Page() {
-  return <WhatsAppRanking />;
+export default function HomePage() {
+  return <LandingPage />;
 }

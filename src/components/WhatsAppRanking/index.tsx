@@ -1,5 +1,4 @@
 import React, { useState, useCallback } from 'react';
-import { MessageCircle } from 'lucide-react';
 import { FileUpload } from './FileUpload';
 import { DateFilter } from './DateFilter';
 import { CacheSection } from './CacheSection';
@@ -52,7 +51,6 @@ export const WhatsAppRanking: React.FC = () => {
     const today = new Date().toISOString().split('T')[0];
     
     if (value > today) {
-      // setError implementado no useFileProcessor, mas precisamos de um estado local para este erro
       return;
     }
 
@@ -155,14 +153,13 @@ export const WhatsAppRanking: React.FC = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 p-4">
       <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <div className="flex items-center justify-center gap-3 mb-4">
-            <MessageCircle className="w-10 h-10 text-green-600" />
-            <h1 className="text-4xl font-bold text-gray-800">WhatsApp Ranking</h1>
-          </div>
+        {/* Page Header */}
+        <div className="text-center mb-8 pt-8">
+          <h1 className="text-4xl font-bold text-gray-800 mb-4">
+            Análise de Mensagens WhatsApp
+          </h1>
           <p className="text-gray-600 text-lg">
-            Faça upload do seu arquivo de chat do WhatsApp para ver quem mais envia mensagens
+            Faça upload do seu arquivo de chat do WhatsApp para ver estatísticas detalhadas
           </p>
         </div>
 
