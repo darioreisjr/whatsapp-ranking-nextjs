@@ -7,6 +7,9 @@ Uma aplicação web moderna e segura para analisar seus chats do WhatsApp e desc
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind-4-cyan?style=flat-square&logo=tailwindcss)
 ![React](https://img.shields.io/badge/React-19-blue?style=flat-square&logo=react)
 
+![image](https://github.com/user-attachments/assets/9be26d9f-1c0f-4714-81bd-9ec0a08fd850)
+
+
 ## 🚀 Funcionalidades
 
 ### 🔒 **100% Privado e Seguro**
