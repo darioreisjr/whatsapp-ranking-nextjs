@@ -1,4 +1,4 @@
-// src/hooks/useCache.ts (Enhanced for Multiple Files)
+// src/hooks/useCache.ts (Corrigido - Fix de Build)
 import { useState, useCallback, useEffect } from 'react';
 import { CachedData, RankingData, DateFilter, MultiFileCachedData, FileDataset, MergeOptions } from '@/types';
 
@@ -63,16 +63,16 @@ export const useCache = () => {
     mergeOptions: MergeOptions,
     filter: DateFilter
   ) => {
+    const cacheData: MultiFileCachedData = {
+      datasets,
+      mergedData,
+      mergeOptions,
+      dateFilter: filter,
+      timestamp: Date.now(),
+      version: CACHE_VERSION
+    };
+
     try {
-      const cacheData: MultiFileCachedData = {
-        datasets,
-        mergedData,
-        mergeOptions,
-        dateFilter: filter,
-        timestamp: Date.now(),
-        version: CACHE_VERSION
-      };
-      
       localStorage.setItem(MULTI_CACHE_KEY, JSON.stringify(cacheData));
       setHasMultiCache(true);
     } catch (error) {
