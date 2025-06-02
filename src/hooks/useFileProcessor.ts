@@ -1,16 +1,38 @@
+// src/hooks/useFileProcessor.ts (Enhanced)
 import { useState, useCallback } from 'react';
 import { RankingData, DateFilter } from '@/types';
 import { processWhatsAppFile } from '@/utils/whatsappParser';
 import JSZip from 'jszip';
 
+export interface ProcessingProgress {
+  stage: 'reading' | 'extracting' | 'parsing' | 'complete';
+  progress: number; // 0-100
+  message: string;
+}
+
 export const useFileProcessor = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string>('');
+  const [progress, setProgress] = useState<ProcessingProgress>({
+    stage: 'reading',
+    progress: 0,
+    message: ''
+  });
+
+  const updateProgress = useCallback((stage: ProcessingProgress['stage'], progress: number, message: string) => {
+    setProgress({ stage, progress, message });
+  }, []);
 
   const extractTextFromZip = async (file: File): Promise<string> => {
     try {
+      updateProgress('reading', 10, 'Lendo arquivo ZIP...');
+      await new Promise(resolve => setTimeout(resolve, 100)); // Small delay for UX
+
       const zip = new JSZip();
+      updateProgress('extracting', 30, 'Extraindo conteúdo...');
+      
       const zipContent = await zip.loadAsync(file);
+      updateProgress('extracting', 50, 'Localizando arquivo de chat...');
       
       // Procura por arquivos .txt no ZIP
       const txtFiles = Object.keys(zipContent.files).filter(
@@ -21,10 +43,12 @@ export const useFileProcessor = () => {
         throw new Error('Nenhum arquivo .txt encontrado no ZIP. Verifique se é um export válido do WhatsApp.');
       }
       
+      updateProgress('extracting', 70, 'Processando arquivo encontrado...');
+      
       // Se há múltiplos arquivos .txt, pega o primeiro ou o que parece ser do WhatsApp
       let targetFile = txtFiles[0];
       
-      // Tenta encontrar um arquivo que pareça ser do WhatsApp (contém "Chat" ou similar)
+      // Tenta encontrar um arquivo que pareça ser do WhatsApp
       const whatsappFile = txtFiles.find(name => 
         name.toLowerCase().includes('chat') || 
         name.toLowerCase().includes('conversa') ||
@@ -35,6 +59,8 @@ export const useFileProcessor = () => {
         targetFile = whatsappFile;
       }
       
+      updateProgress('extracting', 90, 'Extraindo conteúdo do chat...');
+      
       // Extrai o conteúdo do arquivo
       const fileContent = await zipContent.files[targetFile].async('string');
       
@@ -42,6 +68,7 @@ export const useFileProcessor = () => {
         throw new Error('O arquivo de chat está vazio.');
       }
       
+      updateProgress('extracting', 100, 'Extração concluída!');
       return fileContent;
     } catch (err) {
       if (err instanceof Error) {
@@ -66,22 +93,33 @@ export const useFileProcessor = () => {
 
     setError('');
     setIsProcessing(true);
+    setProgress({ stage: 'reading', progress: 0, message: 'Iniciando processamento...' });
 
     try {
       let fileContent: string;
       
       if (isZipFile) {
-        // Processa arquivo ZIP
+        // Processa arquivo ZIP com progresso
         fileContent = await extractTextFromZip(uploadedFile);
       } else {
         // Processa arquivo TXT diretamente
+        updateProgress('reading', 20, 'Lendo arquivo TXT...');
+        await new Promise(resolve => setTimeout(resolve, 200)); // UX delay
+        
         fileContent = await uploadedFile.text();
+        updateProgress('reading', 60, 'Arquivo carregado com sucesso!');
       }
       
       // Valida se o conteúdo parece ser de um chat do WhatsApp
+      updateProgress('parsing', 70, 'Validando formato do arquivo...');
+      await new Promise(resolve => setTimeout(resolve, 150)); // UX delay
+      
       if (!fileContent.includes(' - ') || !fileContent.match(/\d{1,2}\/\d{1,2}\/\d{4}/)) {
         throw new Error('O arquivo não parece ser um export válido do WhatsApp. Verifique se exportou corretamente.');
       }
+      
+      updateProgress('parsing', 85, 'Processando mensagens...');
+      await new Promise(resolve => setTimeout(resolve, 200)); // UX delay
       
       const result = await processWhatsAppFile(fileContent, filter);
       
@@ -89,7 +127,13 @@ export const useFileProcessor = () => {
         throw new Error('Nenhuma mensagem válida encontrada no arquivo. Verifique se é um export do WhatsApp em português.');
       }
       
-      onSuccess(result, fileContent);
+      updateProgress('complete', 100, 'Processamento concluído!');
+      
+      // Small delay to show completion state
+      setTimeout(() => {
+        onSuccess(result, fileContent);
+      }, 500);
+      
     } catch (err) {
       if (err instanceof Error) {
         setError(err.message);
@@ -98,18 +142,27 @@ export const useFileProcessor = () => {
       }
       console.error('Erro ao processar arquivo:', err);
     } finally {
-      setIsProcessing(false);
+      setTimeout(() => {
+        setIsProcessing(false);
+        setProgress({ stage: 'reading', progress: 0, message: '' });
+      }, 1000);
     }
-  }, []);
+  }, [updateProgress]);
 
   const clearError = useCallback(() => {
     setError('');
   }, []);
 
+  const resetProgress = useCallback(() => {
+    setProgress({ stage: 'reading', progress: 0, message: '' });
+  }, []);
+
   return {
     isProcessing,
     error,
+    progress,
     processFile,
-    clearError
+    clearError,
+    resetProgress
   };
 };

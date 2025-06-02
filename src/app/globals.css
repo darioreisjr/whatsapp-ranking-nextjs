@@ -1,4 +1,232 @@
+/* Updated src/app/globals.css */
 @import "tailwindcss";
-/* @tailwind base;
-@tailwind components;
-@tailwind utilities; */
+
+/* Existing styles */
+
+/* Shimmer animation for skeleton loading */
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.animate-shimmer {
+  animation: shimmer 2s infinite linear;
+}
+
+/* Progress bar animations */
+@keyframes progress-pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
+.animate-progress-pulse {
+  animation: progress-pulse 2s ease-in-out infinite;
+}
+
+/* Smooth loading state transitions */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadeInUp {
+  animation: fadeInUp 0.3s ease-out;
+}
+
+/* Success checkmark animation */
+@keyframes checkmark {
+  0% {
+    stroke-dashoffset: 50;
+  }
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+.animate-checkmark {
+  stroke-dasharray: 50;
+  animation: checkmark 0.6s ease-in-out;
+}
+
+/* Loading dots animation */
+@keyframes loading-dots {
+  0%, 80%, 100% {
+    opacity: 0.4;
+    transform: scale(1);
+  }
+  40% {
+    opacity: 1;
+    transform: scale(1.1);
+  }
+}
+
+.animate-loading-dots {
+  animation: loading-dots 1.4s ease-in-out infinite;
+}
+
+.animate-loading-dots:nth-child(1) {
+  animation-delay: 0s;
+}
+
+.animate-loading-dots:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.animate-loading-dots:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+/* Ripple effect for buttons */
+@keyframes ripple {
+  0% {
+    transform: scale(0);
+    opacity: 0.6;
+  }
+  100% {
+    transform: scale(4);
+    opacity: 0;
+  }
+}
+
+.animate-ripple {
+  animation: ripple 0.6s linear;
+}
+
+/* Skeleton pulse animation (enhanced) */
+@keyframes skeleton-pulse {
+  0% {
+    background-color: #e5e7eb;
+  }
+  50% {
+    background-color: #f3f4f6;
+  }
+  100% {
+    background-color: #e5e7eb;
+  }
+}
+
+.animate-skeleton-pulse {
+  animation: skeleton-pulse 1.5s ease-in-out infinite;
+}
+
+/* Progress bar fill animation */
+@keyframes progressFill {
+  from {
+    width: 0%;
+  }
+  to {
+    width: var(--progress-width);
+  }
+}
+
+.animate-progress-fill {
+  animation: progressFill 0.3s ease-out;
+}
+
+/* Loading bounce animation */
+@keyframes loading-bounce {
+  0%, 80%, 100% {
+    transform: scale(0);
+    opacity: 0.5;
+  }
+  40% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-loading-bounce {
+  animation: loading-bounce 1.4s ease-in-out infinite;
+}
+
+/* Gentle glow effect for loading states */
+@keyframes gentle-glow {
+  0%, 100% {
+    box-shadow: 0 0 5px rgba(59, 130, 246, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.6);
+  }
+}
+
+.animate-gentle-glow {
+  animation: gentle-glow 2s ease-in-out infinite;
+}
+
+/* Smooth transitions for state changes */
+.transition-loading {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.transition-loading-slow {
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* File upload progress animation */
+@keyframes upload-progress {
+  0% {
+    transform: translateX(-100%);
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(100%);
+    opacity: 0.6;
+  }
+}
+
+.animate-upload-progress {
+  animation: upload-progress 1.5s ease-in-out infinite;
+}
+
+/* Success state animations */
+.animate-success-scale {
+  animation: successScale 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes successScale {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Error state shake animation */
+.animate-error-shake {
+  animation: errorShake 0.5s ease-in-out;
+}
+
+@keyframes errorShake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-5px);
+  }
+  75% {
+    transform: translateX(5px);
+  }
+}
